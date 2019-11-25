@@ -5,8 +5,8 @@
 #include "string.h"
 
 #define WIN_TITLE "Snake"
-#define WIN_WIDTH 512
-#define WIN_HEIGHT 512
+#define WIN_WIDTH 1024
+#define WIN_HEIGHT 1024
 
 #define DEBUG true
 
@@ -21,14 +21,28 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
+void display() {
+    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+    glutSwapBuffers();
+}
+
 int init(int* argc, char** argv) {
     glutInit(argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGBA|GLUT_DEPTH);
     glutInitWindowSize(WIN_WIDTH, WIN_HEIGHT);
     glutCreateWindow("Snake");
 
+    GLenum err = glewInit();
+    if(err != GLEW_OK) {
+        fprintf(stderr, "ERROR: %s\n", glewGetErrorString(err));
+        return 0;
+    }
+
     if (DEBUG)
-        printf("Initialised.\n");
+        printf("Initialised.\nOpenGL Version: %s\nGLEW Version: %s\n\n", glGetString(GL_VERSION), glewGetString(GLEW_VERSION));
+
+    glutDisplayFunc(display);
+    glutMainLoop();
 
     return 1;
 }
