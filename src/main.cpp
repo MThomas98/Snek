@@ -9,14 +9,14 @@
 #define WIN_TITLE "Snake"
 #define WIN_WIDTH 1024
 #define WIN_HEIGHT 1024
-#define FPS 60
+#define FPS 120
 
 #define DEBUG true
 
 using namespace std;
 using namespace std::chrono;
 
-static high_resolution_clock::time_point lastTime = high_resolution_clock::now();
+nanoseconds lastTime = duration_cast<nanoseconds>(high_resolution_clock::now().time_since_epoch());
 
 void display() {
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -24,10 +24,13 @@ void display() {
 }
 
 void idle(int) {
-    high_resolution_clock::time_point curTime = high_resolution_clock::now();
-    duration<double, milli> delta = curTime - lastTime;
+    nanoseconds curTime = duration_cast<nanoseconds>(high_resolution_clock::now().time_since_epoch());
+    nanoseconds deltans = curTime - lastTime;
+	float delta = deltans.count();
+	float fps = 1000000000/delta;
     lastTime = curTime;
-    printf("Delta time: %d\n", delta.count());
+    printf("\33[2K\33[2KFramerate: %.1ffps || Delta: %.0fms\r", fps, delta/1000000);
+	fflush(stdout);
 
     glutPostRedisplay();
     glutTimerFunc(1000/FPS, idle, 0);
