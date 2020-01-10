@@ -7,9 +7,9 @@
 #include "string.h"
 
 #define WIN_TITLE "Snake"
-#define WIN_WIDTH 1024
-#define WIN_HEIGHT 1024
-#define FPS 120
+#define WIN_WIDTH 800
+#define WIN_HEIGHT 800
+#define FPS 60
 
 #define DEBUG true
 
@@ -18,6 +18,11 @@ using namespace std;
 // TODO: Fix this for windows
 // using namespace std::chrono;
 // nanoseconds lastTime = duration_cast<nanoseconds>(high_resolution_clock::now().time_since_epoch());
+
+enum GameState {MENU, INGAME}
+GameState curState = MENU;
+
+
 
 void display() {
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -33,6 +38,15 @@ void idle(int) {
     // lastTime = curTime;
     // printf("\33[2K\33[2KFramerate: %.1ffps || Delta: %.0fms\r", fps, delta/1000000);
 	// fflush(stdout);
+
+	switch (curState) {
+		case MENU:
+			glutDisplayFunc(displayMenu);
+			break;
+		case INGAME:
+			glutDisplayFunc(displayGame);
+			break;
+	}
 
     glutPostRedisplay();
     glutTimerFunc(1000/FPS, idle, 0);
@@ -51,7 +65,7 @@ int init(int* argc, char** argv) {
         return 0;
     }
 
-    glutDisplayFunc(display);
+    glutDisplayFunc(displayMenu);
     glutTimerFunc(1000/FPS, idle, 0);
 
     if (DEBUG) {
