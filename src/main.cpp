@@ -14,8 +14,9 @@
 #define DEBUG true
 
 using namespace std;
-// using namespace std::chrono;
 
+// TODO: Fix this for windows
+// using namespace std::chrono;
 // nanoseconds lastTime = duration_cast<nanoseconds>(high_resolution_clock::now().time_since_epoch());
 
 void display() {
@@ -24,6 +25,7 @@ void display() {
 }
 
 void idle(int) {
+	// TODO: Fix this for windows
     // nanoseconds curTime = duration_cast<nanoseconds>(high_resolution_clock::now().time_since_epoch());
     // nanoseconds deltans = curTime - lastTime;
 	// float delta = deltans.count();
