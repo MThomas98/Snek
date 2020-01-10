@@ -37,6 +37,8 @@ void idle(int) {
 }
 
 int init(int* argc, char** argv) {
+	printf("Initialising...\n");
+
     glutInit(argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGBA|GLUT_DEPTH);
     glutInitWindowSize(WIN_WIDTH, WIN_HEIGHT);
@@ -61,6 +63,8 @@ int init(int* argc, char** argv) {
 }
 
 int main(int argc, char* argv[]) {
+	printf("Started program.\n");
+
     if (!init(&argc, argv)) {
         fprintf(stderr, "ERROR: Failed to initialise.\n");
         return -1;
