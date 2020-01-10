@@ -3,12 +3,10 @@ CXX = g++
 SRCS := $(wildcard src/*.cpp)
 OBJS := $(patsubst src/%,obj/%,$(SRCS:.cpp=.o))
 
-GLEWPATH = /modules/cs324/glew-1.11.0
-
-INCLUDE_PATHS = -Iinclude/ -I$(GLEWPATH)/include
-LIBRARY_PATHS = -Llibs\lib -L/usr/X11R6/lib -L$(GLEWPATH)/lib -Llib/
+INCLUDE_PATHS = -Iinclude/
+LIBRARY_PATHS = -Llibs\lib -L/usr/X11R6/lib -Llib/
 COMPILER_FLAGS = -std=c++11 -O3 -c
-LINKER_FLAGS = -lglut -lGL -lGLU -lX11 -lm -lGLEW
+LINKER_FLAGS = -lfreeglut -lGL -lGLU -lGLEW -lopengl32 -lmingw32
 
 EXE_NAME = snake
 

@@ -2,3 +2,5 @@ snake
 obj/*
 Makefile
 include/
+glut32.dll
+lib/
