@@ -5,8 +5,8 @@ OBJS := $(patsubst src/%,obj/%,$(SRCS:.cpp=.o))
 
 INCLUDE_PATHS = -Iinclude/
 LIBRARY_PATHS = -Llib/
-COMPILER_FLAGS = -std=c++11 -O3 -c -Wl,--subsystem,windows
-LINKER_FLAGS = -lfreeglut -lglew32 -lopengl32
+COMPILER_FLAGS = -std=c++11 -O3 -c
+LINKER_FLAGS = -lGLUT -lGLEW -lGL
 
 EXE_NAME = snake
 

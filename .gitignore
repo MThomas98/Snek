@@ -1,11 +1,4 @@
 snake
-obj/
+obj/*
 Makefile
-include/
-glut32.dll
-lib/
-GLEW/
-freeglut.dll
-glew32.dll
 snake.exe
-libstdc++-6.dll
