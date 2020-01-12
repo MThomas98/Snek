@@ -8,3 +8,4 @@ GLEW/
 freeglut.dll
 glew32.dll
 snake.exe
+libstdc++-6.dll
