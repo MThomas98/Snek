@@ -1,93 +1,122 @@
 #include <GL/glew.h>
 #include <GL/glut.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
-// #include <chrono>
-#include <ctime>
-#include "stdio.h"
-#include "string.h"
+#include <cstdio>
+#include <string>
 
-#define WIN_TITLE "Snake"
-#define WIN_WIDTH 800
-#define WIN_HEIGHT 800
+#include "Shader.h"
+#include "Texture.h"
+#include "Model.h"
+
+#define WIN_TITLE "CS310 Project"
+#define WIN_WIDTH 500
+#define WIN_HEIGHT 500
 #define FPS 60
-
-#define DEBUG true
 
 using namespace std;
 
-// TODO: Fix this for windows
-// using namespace std::chrono;
-// nanoseconds lastTime = duration_cast<nanoseconds>(high_resolution_clock::now().time_since_epoch());
+Shader* colorShader;
+Shader* texShader;
 
-enum GameState {MENU, INGAME}
-GameState curState = MENU;
+Texture* sandTex;
+Model* plane;
+Model* cube;
 
+/*---------------------*
+*    GLUT functions    *
+*----------------------*/
 
+void gDisplay() {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-void display() {
-    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-    glutSwapBuffers();
+	glBindVertexArray(0);
+
+	texShader->use();
+
+	// Set proj and view matricies
+	glm::mat4 proj = glm::perspective(glm::radians(45.0f), (float)WIN_WIDTH/WIN_HEIGHT, 0.1f, 100.0f);
+	glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
+	texShader->setMat4f("proj", proj);
+	texShader->setMat4f("view", view);
+
+	// Set plane's model matrix
+	glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	texShader->setMat4f("model", model);
+
+	// Draw the plane
+	plane->draw();
+
+	glutSwapBuffers();
 }
 
-void idle(int) {
-	// TODO: Fix this for windows
-    // nanoseconds curTime = duration_cast<nanoseconds>(high_resolution_clock::now().time_since_epoch());
-    // nanoseconds deltans = curTime - lastTime;
-	// float delta = deltans.count();
-	// float fps = 1000000000/delta;
-    // lastTime = curTime;
-    // printf("\33[2K\33[2KFramerate: %.1ffps || Delta: %.0fms\r", fps, delta/1000000);
-	// fflush(stdout);
-
-	switch (curState) {
-		case MENU:
-			glutDisplayFunc(displayMenu);
-			break;
-		case INGAME:
-			glutDisplayFunc(displayGame);
-			break;
-	}
-
-    glutPostRedisplay();
-    glutTimerFunc(1000/FPS, idle, 0);
+void gLoop(int) {
+	glutPostRedisplay();
+	glutTimerFunc(1000/FPS, gLoop, 0);
 }
 
+
+/*---------------------*
+*    Init functions    *
+*----------------------*/
+
+// Initialise OpenGL things
 int init(int* argc, char** argv) {
-    glutInit(argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGBA|GLUT_DEPTH);
-    glutInitWindowSize(WIN_WIDTH, WIN_HEIGHT);
-    glutInitWindowPosition((glutGet(GLUT_SCREEN_WIDTH) - WIN_WIDTH)/2, (glutGet(GLUT_SCREEN_HEIGHT) - WIN_HEIGHT)/2);
-    glutCreateWindow("Snake");
+	// Initialise GLUT window
+	glutInit(argc, argv);
+	glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGBA|GLUT_DEPTH);
+	glutInitWindowSize(WIN_WIDTH, WIN_HEIGHT);
+	glutInitWindowPosition((glutGet(GLUT_SCREEN_WIDTH) - WIN_WIDTH)/2, (glutGet(GLUT_SCREEN_HEIGHT) - WIN_HEIGHT)/2);
+	glutCreateWindow(WIN_TITLE);
+	//glClearColor(0.2f, 0.2f, 0.8f, 1.0f);
+	glEnable(GL_DEPTH_TEST);
+	printf("\nInitialised GLUT.\n");
 
-    GLenum err = glewInit();
-    if(err != GLEW_OK) {
-        fprintf(stderr, "ERROR: %s\n", glewGetErrorString(err));
-        return 0;
-    }
-
-    glutDisplayFunc(displayMenu);
-    glutTimerFunc(1000/FPS, idle, 0);
-
-    if (DEBUG) {
-        printf("\nInitialised window.\n\nOpenGL Version: %s\nGLEW Version: %s\n\n", glGetString(GL_VERSION), glewGetString(GLEW_VERSION));
-		fflush(stdout);
+	// Initialise GLEW
+	GLenum err = glewInit();
+	if(err != GLEW_OK) {
+		fprintf(stderr, "ERROR: %s\n", glewGetErrorString(err));
+		return 0;
 	}
+	printf("Initialised GLEW.\n");
 
-    glutMainLoop();
+	// Create the shaders
+	colorShader = new Shader("shaders/color.vert", "shaders/color.frag");
+	texShader = new Shader("shaders/tex.vert", "shaders/tex.frag");
+	printf("Compiled shaders.\n");
 
-    return 1;
+	// Create the textures
+	sandTex = new Texture("tex/red_sand.png");
+
+	// Create the models
+	plane = new PlaneModel(*sandTex);
+	cube = new CubeModel(*sandTex);
+
+	printf("Finished initialisation.\n\n");
+	printf("OpenGL Version: %s\nGLEW Version: %s\n\n", glGetString(GL_VERSION), glewGetString(GLEW_VERSION));
+
+	// Set GLUT functions
+	glutDisplayFunc(gDisplay);
+	glutTimerFunc(1000/FPS, gLoop, 0);
+	glutMainLoop();
+
+	return 1;
 }
 
+// Entry function
 int main(int argc, char* argv[]) {
+	// For fixing stdout buffering on windows
 	#ifdef _WIN32
 	setvbuf(stdout, NULL, _IONBF, 0);
 	setvbuf(stderr, NULL, _IONBF, 0);
 	#endif
 
-    if (!init(&argc, argv)) {
-        fprintf(stderr, "ERROR: Failed to initialise.\n");
-        return -1;
-    }
+	// Check if initialisation is successful
+	if (!init(&argc, argv)) {
+		fprintf(stderr, "ERROR: Failed to initialise.\n");
+		return -1;
+	}
 
-    return 0;
+	return 0;
 }
