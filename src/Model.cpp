@@ -2,8 +2,6 @@
 
 // Constructor for predefined objects
 Model::Model(Texture modelTex, const float verts[], unsigned int sizeVerts) : tex(modelTex) {
-	printf("%f\n", verts[17]);
-
 	// Set number of verts
 	numVerts = sizeVerts / sizeof(float) / 5;
 
