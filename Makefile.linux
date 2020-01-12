@@ -3,8 +3,8 @@ CXX = g++
 SRCS := $(wildcard src/*.cpp)
 OBJS := $(patsubst src/%,obj/%,$(SRCS:.cpp=.o))
 
-INCLUDE_PATHS = -Iinclude/
-LIBRARY_PATHS = -Llib/
+INCLUDE_PATHS = -Iinclude/ -IFIXTHIS
+LIBRARY_PATHS = -Llib/ -IFIXTHIS
 COMPILER_FLAGS = -std=c++11 -O3 -c
 LINKER_FLAGS = -lGLUT -lGLEW -lGL
 
