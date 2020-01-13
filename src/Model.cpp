@@ -23,8 +23,8 @@ Model::Model(Texture modelTex, const float verts[], unsigned int sizeVerts) : te
 }
 
 void Model::draw() {
-	tex.bind();
 	glBindVertexArray(vao);
+	tex.bind();
 	glDrawArrays(GL_TRIANGLES, 0, numVerts);
 }
 
@@ -32,12 +32,12 @@ void Model::draw() {
 
 const float PlaneModel::modelVerts[] = {
 	0.5f,  0.5f,  0.0f,	 	1.0f,  1.0f,
-	0.5f, -0.5f,  0.0f,	 	1.0f, -1.0f,
-	-0.5f, -0.5f,  0.0f,	-1.0f, -1.0f,
+	0.5f, -0.5f,  0.0f,	 	1.0f, 0.0f,
+	-0.5f, -0.5f,  0.0f,	0.0f, 0.0f,
 
 	0.5f,  0.5f,  0.0f,	 	1.0f,  1.0f,
-	-0.5f, 0.5f,  0.0f,	 	-1.0f, 1.0f,
-	-0.5f, -0.5f,  0.0f,	-1.0f, -1.0f,
+	-0.5f, 0.5f,  0.0f,	 	0.0f, 1.0f,
+	-0.5f, -0.5f,  0.0f,	0.0f, 0.0f,
 };
 const unsigned int PlaneModel::sizeVerts = sizeof(PlaneModel::modelVerts);
 

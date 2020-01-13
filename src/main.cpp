@@ -31,21 +31,22 @@ Model* snakeBodyModel;
 Model* fruitModel;
 Model* lightTileModel;
 Model* darkTileModel;
+Model* compassModel;
 
 //** Game vars **//
 enum SnakeDirection { NORTH, EAST, SOUTH, WEST };
-enum TileState { HEAD, BODY, EMPTY, FRUIT };
 enum GameState { INIT, RUNNING, PAUSED, OVER };
 
 int snakeX = 0;
 int snakeY = 0;
 int snakeLen = 3;
 SnakeDirection snakeDir = NORTH;
+SnakeDirection nextSnakeDir = NORTH;
 
 int fruitX;
 int fruitY;
 
-TileState grid[GRID_WIDTH][GRID_HEIGHT];
+int grid[GRID_WIDTH][GRID_HEIGHT];
 GameState state = RUNNING;
 
 
@@ -60,19 +61,21 @@ void stopped() {
 
 //** Run when game state is "RUNNING" **//
 void running() {
+	snakeDir = nextSnakeDir;
+
 	// Move the snake in the dir that it is moving
 	switch (snakeDir) {
 		case NORTH:
-			snakeY++;
-			break;
-		case SOUTH:
-			snakeY++;
-			break;
-		case EAST:
 			snakeX++;
 			break;
-		case WEST:
+		case SOUTH:
 			snakeX--;
+			break;
+		case EAST:
+			snakeY--;
+			break;
+		case WEST:
+			snakeY++;
 			break;
 	}
 
@@ -83,19 +86,21 @@ void running() {
 	}
 
 	// Collision check with snake body
-	if (grid[snakeX][snakeY] == BODY) {
+	if (grid[snakeX][snakeY] > 0) {
 		state = OVER;
 		return;
 	}
 
-	// Collision check with snake body
-	if (grid[snakeX][snakeY] == BODY) {
-		state = OVER;
-		return;
+	// Update all grid tyles
+	for (int x = 0; x < GRID_WIDTH; x++) {
+		for (int y = 0; y < GRID_WIDTH; y++) {
+			if (grid[x][y] > 0)
+				grid[x][y]--;
+		}
 	}
 
-	// Update the grid
-	grid[snakeX][snakeY] = HEAD;
+	// Update the grid with the snake head location
+	grid[snakeX][snakeY] = snakeLen;
 }
 
 /*---------------------*
@@ -113,7 +118,9 @@ void gDisplay() {
 	for (int x = 0; x < GRID_WIDTH; x++) {
 		for (int y = 0; y < GRID_HEIGHT; y++) {
 			// Draw the grid
-			model = glm::translate(glm::mat4(1.0f), glm::vec3(-(GRID_WIDTH/2) + 0.5*(!(GRID_WIDTH % 2)), -(GRID_HEIGHT/2) + 0.5*(!(GRID_HEIGHT % 2)), 0.0f));
+			// model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.4*max(GRID_WIDTH, GRID_HEIGHT), 0.0f));
+			model = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			model = glm::translate(model, glm::vec3(-(GRID_WIDTH/2) + 0.5*(!(GRID_WIDTH % 2)), -(GRID_HEIGHT/2) + 0.5*(!(GRID_HEIGHT % 2)), 0.0f));
 			model = glm::translate(model, glm::vec3(x, y, 0.0f));
 			shader->setMat4f("model", model);
 
@@ -123,23 +130,50 @@ void gDisplay() {
 			else
 				darkTileModel->draw();
 
+			// Move the model matrix so the next object is drawn in front of the grid
+			model = glm::translate(model, glm::vec3(0.0f, 0.0f, 1.0f));
+			shader->setMat4f("model", model);
+
 			// Draw what's at that location
-			model = glm::translate(model, glm::vec3(0.0f, 0.0f, -1.0f));
-			switch (grid[x][y]) {
-				case HEAD:
-					snakeHeadModel->draw();
-					break;
-				case BODY:
-					snakeBodyModel->draw();
-					break;
-				case FRUIT:
-					fruitModel->draw();
-					break;
-			}
+			if (grid[x][y] == snakeLen)
+				snakeHeadModel->draw();
+			else if (grid[x][y] > 0)
+				snakeBodyModel->draw();
+			else if (grid[x][y] == -1)
+				fruitModel->draw();
 		}
 	}
 
+	// Draw the wasd compass
+	model = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5*max(GRID_WIDTH, GRID_HEIGHT), -1.5*max(GRID_WIDTH, GRID_HEIGHT), 0.0f));
+	model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	model = glm::scale(model, glm::vec3(15.0f, 15.0f, 15.0f));
+	shader->setMat4f("model", model);
+	compassModel->draw();
+
 	glutSwapBuffers();
+}
+
+//** Function handling key events **//
+void gKeyEvent(unsigned char key, int, int) {
+	// Change direction on WASD presses
+	switch (key) {
+		case 'w':
+		case 'W':
+			if (snakeDir != SOUTH) nextSnakeDir = NORTH;
+			break;
+		case 'a':
+		case 'A':
+			if (snakeDir != EAST) nextSnakeDir = WEST;
+			break;
+		case 's':
+		case 'S':
+			if (snakeDir != NORTH) nextSnakeDir = SOUTH;
+			break;
+		case 'd':
+		case 'D':
+			if (snakeDir != WEST) nextSnakeDir = EAST;
+	}
 }
 
 //** The main game loop **//
@@ -153,7 +187,28 @@ void gLoop(int) {
 			stopped();
 	}
 
-	printf("Head Loc: (%d, %d)\n", snakeX, snakeY);
+	//** Print debug information **/
+	// Get the string for the direction
+	string dirString;
+	switch (snakeDir) {
+		case NORTH:
+			dirString = "NORTH";
+			break;
+		case EAST:
+			dirString = "EAST";
+			break;
+		case SOUTH:
+			dirString = "SOUTH";
+			break;
+		case WEST:
+			dirString = "WEST";
+	}
+
+	// Print out the information
+	if (state != OVER)
+		printf("\033[KDirection: %s\n\033[KHead Location: (%d, %d)\n\033[2A\r", dirString.c_str(), snakeX, snakeY);
+	else
+		printf("\033[K\033[KDirection: %s\033[K\nHead Location: (%d, %d)\n\n\033[KGAME OVER!\n\n\033[5A\r", dirString.c_str(), snakeX, snakeY);
 
 	glutPostRedisplay();
 	glutTimerFunc(1000/TICK_RATE, gLoop, 0);
@@ -195,21 +250,29 @@ int main(int argc, char* argv[]) {
 	printf("Compiled shaders.\n");
 
 	// Setup projection and view matricies for the shader
-	glm::mat4 proj = glm::perspective(glm::radians(90.0f), (float)WIN_WIDTH/WIN_HEIGHT, 0.1f, 100.0f);
-	glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, -0.51*max(GRID_WIDTH, GRID_HEIGHT)), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	// glm::mat4 proj = glm::perspective(glm::radians(90.0f), (float)WIN_WIDTH/WIN_HEIGHT, 0.1f, 100.0f);
+	float orthoBound = 0.8*max(GRID_WIDTH, GRID_HEIGHT);
+	glm::mat4 proj = glm::ortho(-orthoBound, orthoBound, -orthoBound, orthoBound, -100.0f, 100.0f);
+	// glm::mat4 view = glm::lookAt(glm::vec3(0.0f, -1.0f, -0.51*max(GRID_WIDTH, GRID_HEIGHT)), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 view = glm::lookAt(glm::vec3(0.0f, -22.0f, 15.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
 	shader->setMat4f("proj", proj);
 	shader->setMat4f("view", view);
 
 	// Load models and textures
 	Texture darkGreen("img/green1.jpg");
 	Texture lightGreen("img/green2.jpg");
-	Texture whiteChecker("img/white_checker.jpg");
+	// Texture whiteChecker("img/white_checker.jpg");
 	Texture redChecker("img/red_checker.jpg");
-	snakeHeadModel = new CubeModel(whiteChecker);
-	snakeBodyModel = new CubeModel(whiteChecker);
+	Texture blackBox("img/black_box.jpg");
+	Texture compass("img/compass.jpg");
+	compassModel = new PlaneModel(compass);
+	snakeHeadModel = new CubeModel(blackBox);
+	snakeBodyModel = new CubeModel(blackBox);
 	fruitModel = new CubeModel(redChecker);
-	lightTileModel = new PlaneModel(lightGreen);
-	darkTileModel = new PlaneModel(darkGreen);
+	lightTileModel = new CubeModel(lightGreen);
+	darkTileModel = new CubeModel(darkGreen);
+
 
 	// Print OpenGL debug info
 	printf("Finished Graphics initialisation.\n\n");
@@ -218,11 +281,17 @@ int main(int argc, char* argv[]) {
 	// Create the grid
 	for (int x = 0; x < GRID_WIDTH; x++) {
 		for (int y = 0; y < GRID_HEIGHT; y++)
-			grid[x][y] = EMPTY;
+			grid[x][y] = 0;
 	}
+
+	// Put the head in the middle of the grid
+	grid[(int)GRID_WIDTH/2][(int)GRID_HEIGHT/2] = snakeLen;
+	snakeX = (int)GRID_WIDTH/2;
+	snakeY = (int)GRID_HEIGHT/2;
 
 	// Set GLUT functions
 	glutDisplayFunc(gDisplay);
+	glutKeyboardFunc(gKeyEvent);
 	glutTimerFunc(1000/TICK_RATE, gLoop, 0);
 	glutMainLoop();
 
