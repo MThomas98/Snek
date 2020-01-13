@@ -3,10 +3,10 @@ CXX = g++
 SRCS := $(wildcard src/*.cpp)
 OBJS := $(patsubst src/%,obj/%,$(SRCS:.cpp=.o))
 
-INCLUDE_PATHS = -Iinclude/
-LIBRARY_PATHS = -Llib/
-COMPILER_FLAGS = -std=c++11 -O3 -c -static-libgcc -static-libstdc++ -Wl,--subsystem,windows
-LINKER_FLAGS = -lfreeglut -lglew32 -lopengl32
+INCLUDE_PATHS = -Iinclude_linux/ -I/modules/cs324/glew-1.11.0/include/
+LIBRARY_PATHS = -L/modules/cs324/glew-1.11.0/lib -L/usr/X11R6/lib
+COMPILER_FLAGS = -std=c++11 -O3 -c 
+LINKER_FLAGS = -lglut -lGL -lGLU -lX11 -lm -lGLEW -lpng
 
 EXE_NAME = snake
 
@@ -19,4 +19,4 @@ obj/%.o: src/%.cpp
 	$(CXX) $(INCLUDE_PATHS) $(COMPILER_FLAGS) -o $@ $<
 
 clean:
-	$(RM) -r obj/* ./snake
+	$(RM) -r obj/* ./$(EXE_NAME)
