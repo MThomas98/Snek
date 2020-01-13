@@ -20,7 +20,7 @@
 //** Define game attributes **//
 #define GRID_WIDTH 25
 #define GRID_HEIGHT 25
-#define TICK_RATE 2
+#define TICK_RATE 5
 
 using namespace std;
 
@@ -66,16 +66,16 @@ void running() {
 	// Move the snake in the dir that it is moving
 	switch (snakeDir) {
 		case NORTH:
-			snakeX++;
+			snakeY++;
 			break;
 		case SOUTH:
-			snakeX--;
-			break;
-		case EAST:
 			snakeY--;
 			break;
+		case EAST:
+			snakeX--;
+			break;
 		case WEST:
-			snakeY++;
+			snakeX++;
 			break;
 	}
 
@@ -119,7 +119,7 @@ void gDisplay() {
 		for (int y = 0; y < GRID_HEIGHT; y++) {
 			// Draw the grid
 			// model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.4*max(GRID_WIDTH, GRID_HEIGHT), 0.0f));
-			model = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 			model = glm::translate(model, glm::vec3(-(GRID_WIDTH/2) + 0.5*(!(GRID_WIDTH % 2)), -(GRID_HEIGHT/2) + 0.5*(!(GRID_HEIGHT % 2)), 0.0f));
 			model = glm::translate(model, glm::vec3(x, y, 0.0f));
 			shader->setMat4f("model", model);
@@ -250,11 +250,11 @@ int main(int argc, char* argv[]) {
 	printf("Compiled shaders.\n");
 
 	// Setup projection and view matricies for the shader
-	// glm::mat4 proj = glm::perspective(glm::radians(90.0f), (float)WIN_WIDTH/WIN_HEIGHT, 0.1f, 100.0f);
-	float orthoBound = 0.8*max(GRID_WIDTH, GRID_HEIGHT);
-	glm::mat4 proj = glm::ortho(-orthoBound, orthoBound, -orthoBound, orthoBound, -100.0f, 100.0f);
+	glm::mat4 proj = glm::perspective(glm::radians(90.0f), (float)WIN_WIDTH/WIN_HEIGHT, 0.1f, 100.0f);
+	// float orthoBound = 0.8*max(GRID_WIDTH, GRID_HEIGHT);
+	// glm::mat4 proj = glm::ortho(-orthoBound, orthoBound, -orthoBound, orthoBound, -100.0f, 100.0f);
 	// glm::mat4 view = glm::lookAt(glm::vec3(0.0f, -1.0f, -0.51*max(GRID_WIDTH, GRID_HEIGHT)), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	glm::mat4 view = glm::lookAt(glm::vec3(0.0f, -22.0f, 15.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 view = glm::lookAt(glm::vec3(-15.0f, -15.0f, 15.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
 	shader->setMat4f("proj", proj);
 	shader->setMat4f("view", view);
