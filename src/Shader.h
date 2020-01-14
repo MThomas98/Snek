@@ -19,6 +19,7 @@ public:
 	void setInt(string name, int value) const;
 	void setFloat(string name, float value) const;
 	void setVec4f(string name, float v1, float v2, float v3, float v4) const;
+	void setVec3f(string name, float v1, float v2, float v3) const;
 	void setMat4f(string name, glm::mat4 value) const;
 
 	Shader(const char* vPath, const char* fPath);

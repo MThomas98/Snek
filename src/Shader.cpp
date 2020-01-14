@@ -83,4 +83,5 @@ void Shader::setBool(string name, bool value) const { glUniform1i(glGetUniformLo
 void Shader::setInt(string name, int value) const { glUniform1i(glGetUniformLocation(shaderProg, name.c_str()), value); }
 void Shader::setFloat(string name, float value) const { glUniform1f(glGetUniformLocation(shaderProg, name.c_str()), value); }
 void Shader::setVec4f(string name, float v1, float v2, float v3, float v4) const { glUniform4f(glGetUniformLocation(shaderProg, name.c_str()), v1, v2, v3, v4); }
+void Shader::setVec3f(string name, float v1, float v2, float v3) const { glUniform3f(glGetUniformLocation(shaderProg, name.c_str()), v1, v2, v3); }
 void Shader::setMat4f(string name, glm::mat4 value) const { glUniformMatrix4fv(glGetUniformLocation(shaderProg, name.c_str()), 1, GL_FALSE, glm::value_ptr(value)); }

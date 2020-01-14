@@ -154,6 +154,9 @@ float test = 0.0f;
 void gDisplay() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	shader->setVec3f("lightColor", 1.0f, 1.0f, 1.0f);
+	shader->setVec3f("lightPos", 0.0f, 0.0f, -10.0f);
+
 	// Setup projection and view matricies for 3d drawing
 	glm::mat4 proj = glm::perspective(glm::radians(60.0f), (float)WIN_WIDTH/WIN_HEIGHT, 0.1f, 100.0f);
 	// float orthoBound = max(GRID_WIDTH, GRID_HEIGHT);
