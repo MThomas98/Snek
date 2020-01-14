@@ -66,6 +66,8 @@ void placeFruit() {
 	} while (!grid[x][y] == 0);
 
 	grid[x][y] = -1;
+	fruitX = x;
+	fruitY = y;
 }
 
 //** Set up the game **//
@@ -148,19 +150,41 @@ void running() {
 *    GLUT functions    *
 *----------------------*/
 
-float test = 0.0f;
+
+void disableLighting() {
+	// Disable lighting
+	shader->setBool("lightEnabled", false);
+}
+
+void enableLighting() {
+	// Enable lighting
+	shader->setBool("lightEnabled", true);
+
+	// Fruit Light
+	shader->setFloat("lights[0].ambStrength", 0.0f);
+	shader->setFloat("lights[0].specStrength", 1.0f);
+	shader->setVec3f("lights[0].lightColor", 1.0f, 0.2f, 0.2f);
+	shader->setVec3f("lights[0].lightPos", -(GRID_WIDTH/2) + 0.5*(!(GRID_WIDTH % 2)) + fruitX, -(GRID_HEIGHT/2) + 0.5*(!(GRID_HEIGHT % 2)) + fruitY, -1.0f);
+
+	// World Light
+	shader->setFloat("lights[1].ambStrength", 0.4f);
+	shader->setFloat("lights[1].specStrength", 0.2f);
+	shader->setVec3f("lights[1].lightColor", 1.0f, 1.0f, 1.0f);
+	shader->setVec3f("lights[1].lightPos", 0.0f, 0.0f, -15.0f);
+
+	// Other vars
+	shader->setVec3f("viewPosition", 0.0f, -max(GRID_WIDTH, GRID_HEIGHT), -max(GRID_WIDTH, GRID_HEIGHT));
+}
 
 //** The drawing function **//
 void gDisplay() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	shader->setVec3f("lightColor", 1.0f, 1.0f, 1.0f);
-	shader->setVec3f("lightPos", 0.0f, 0.0f, -10.0f);
+	// Set up lighting
+	enableLighting();
 
 	// Setup projection and view matricies for 3d drawing
 	glm::mat4 proj = glm::perspective(glm::radians(60.0f), (float)WIN_WIDTH/WIN_HEIGHT, 0.1f, 100.0f);
-	// float orthoBound = max(GRID_WIDTH, GRID_HEIGHT);
-	// glm::mat4 proj = glm::ortho(-orthoBound, orthoBound, -orthoBound, orthoBound, 0.1f, 100.0f);
 	glm::mat4 view = glm::lookAt(glm::vec3(0.0f, -max(GRID_WIDTH, GRID_HEIGHT), -max(GRID_WIDTH, GRID_HEIGHT)), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	shader->setMat4f("proj", proj);
 	shader->setMat4f("view", view);
@@ -172,7 +196,6 @@ void gDisplay() {
 	for (int x = 0; x < GRID_WIDTH; x++) {
 		for (int y = 0; y < GRID_HEIGHT; y++) {
 			// Draw the grid
-			// model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.4*max(GRID_WIDTH, GRID_HEIGHT), 0.0f));
 			model = glm::translate(glm::mat4(1.0f), glm::vec3(-(GRID_WIDTH/2) + 0.5*(!(GRID_WIDTH % 2)), -(GRID_HEIGHT/2) + 0.5*(!(GRID_HEIGHT % 2)), 0.0f));
 			model = glm::translate(model, glm::vec3(x, y, 0.0f));
 			shader->setMat4f("model", model);
@@ -192,29 +215,29 @@ void gDisplay() {
 				snakeHeadModel->draw();
 			else if (grid[x][y] > 0)
 				snakeBodyModel->draw();
-			else if (grid[x][y] == -1)
+			else if (grid[x][y] == -1) {
+				disableLighting();
+				model = glm::scale(model, glm::vec3(0.8f, 0.8f, 0.8f));
+				shader->setMat4f("model", model);
 				fruitModel->draw();
+				enableLighting();
+			}
 		}
 	}
-
-	// Draw the wasd compass
-	// model = glm::translate(glm::mat4(1.0f), glm::vec3(2.5f, GRID_HEIGHT/2 + 10.0f, 0.0f));
-	// model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	// model = glm::rotate(model, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-	// model = glm::scale(model, glm::vec3(15.0f, 15.0f, 1.0f));
-	// shader->setMat4f("model", model);
-	// compassModel->draw();
 
 	// Setup projection and view matricies for UI drawing
 	shader->setMat4f("proj", glm::mat4(1.0f));
 	shader->setMat4f("view", glm::mat4(1.0f));
+	disableLighting();
 
 	// Draw the game over text if game is finished
 	if (state == OVER) {
-		shader->setMat4f("model", glm::mat4(1.0f));
+		model = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(2.0f, 2.0f, 1.0f));
+		shader->setMat4f("model", model);
 		gameOverModel->draw();
 	}
-
 
 	glutSwapBuffers();
 }
@@ -241,6 +264,8 @@ void gKeyEvent(unsigned char key, int, int) {
 			break;
 		case ' ':
 			if (state == OVER) initGame();
+			printf("\033[4B\r\033[K\033[4A");
+			snakeLen = 3;
 	}
 }
 
@@ -274,9 +299,9 @@ void gLoop(int) {
 
 	// Print out the information
 	if (state != OVER)
-		printf("\033[KDirection: %s\n\033[KHead Location: (%d, %d)\n\033[2A\r", dirString.c_str(), snakeX, snakeY);
+		printf("\033[KDirection: %s\n\033[KHead Location: (%d, %d)\n\n\033[KSCORE: %d\n\n\033[5A\r", dirString.c_str(), snakeX, snakeY, snakeLen);
 	else
-		printf("\033[K\033[KDirection: %s\033[K\nHead Location: (%d, %d)\n\n\033[KGAME OVER!\n\n\033[5A\r", dirString.c_str(), snakeX, snakeY);
+		printf("\033[KDirection: %s\n\033[KHead Location: (%d, %d)\n\n\033[KSCORE: %d\n\033[KGAME OVER!\n\033[5A\r", dirString.c_str(), snakeX, snakeY, snakeLen);
 
 	glutPostRedisplay();
 	glutTimerFunc(1000/TICK_RATE, gLoop, 0);
@@ -287,6 +312,11 @@ void gLoop(int) {
 *    Init functions    *
 *----------------------*/
 
+//** Exit function to clean up console printing **//
+void exiting() {
+	printf("\n\n\n\n\n");
+}
+
 //** Entry function **//
 int main(int argc, char* argv[]) {
 	// For fixing stdout buffering on windows
@@ -294,6 +324,8 @@ int main(int argc, char* argv[]) {
 	setvbuf(stdout, NULL, _IONBF, 0);
 	setvbuf(stderr, NULL, _IONBF, 0);
 	#endif
+
+	std::atexit(exiting);
 
 	// Serialise the random generator
 	srand(time(NULL));
@@ -325,7 +357,7 @@ int main(int argc, char* argv[]) {
 	// Load models and textures
 	Texture darkGreen("img/green1.png");
 	Texture lightGreen("img/green2.png");
-	Texture redChecker("img/red_checker.png");
+	Texture redBox("img/red_box.png");
 	Texture blackBox("img/black_box.png");
 	Texture compass("img/compass.png");
 	Texture gameOver("img/game_over.png");
@@ -333,7 +365,7 @@ int main(int argc, char* argv[]) {
 	gameOverModel = new PlaneModel(gameOver);
 	snakeHeadModel = new CubeModel(blackBox);
 	snakeBodyModel = new CubeModel(blackBox);
-	fruitModel = new CubeModel(redChecker);
+	fruitModel = new CubeModel(redBox);
 	lightTileModel = new CubeModel(lightGreen);
 	darkTileModel = new CubeModel(darkGreen);
 
