@@ -6,6 +6,8 @@
 #include <cstdio>
 #include <string>
 #include <algorithm>
+#include <stdlib.h>
+#include <time.h>
 
 //** Import classes **//
 #include "Shader.h"
@@ -32,10 +34,11 @@ Model* fruitModel;
 Model* lightTileModel;
 Model* darkTileModel;
 Model* compassModel;
+Model* gameOverModel;
 
 //** Game vars **//
 enum SnakeDirection { NORTH, EAST, SOUTH, WEST };
-enum GameState { INIT, RUNNING, PAUSED, OVER };
+enum GameState { RUNNING, PAUSED, OVER };
 
 int snakeX = 0;
 int snakeY = 0;
@@ -59,8 +62,20 @@ void stopped() {
 	// TODO: this
 }
 
+//** place a fruit in the grid **//
+void placeFruit() {
+	int x, y;
+	do {
+		x = rand() % GRID_WIDTH;
+		y = rand() % GRID_HEIGHT;
+	} while (!grid[x][y] == 0);
+
+	grid[x][y] = -1;
+}
+
 //** Run when game state is "RUNNING" **//
 void running() {
+	// Update direction
 	snakeDir = nextSnakeDir;
 
 	// Move the snake in the dir that it is moving
@@ -76,7 +91,12 @@ void running() {
 			break;
 		case WEST:
 			snakeX++;
-			break;
+	}
+
+	// Eat a fruit!
+	if (grid[snakeX][snakeY] == -1) {
+		snakeLen++;
+		placeFruit();
 	}
 
 	// Collision check with wall
@@ -107,9 +127,19 @@ void running() {
 *    GLUT functions    *
 *----------------------*/
 
+float test = 0.0f;
+
 //** The drawing function **//
 void gDisplay() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Setup projection and view matricies for 3d drawing
+	glm::mat4 proj = glm::perspective(glm::radians(60.0f), (float)WIN_WIDTH/WIN_HEIGHT, 0.1f, 100.0f);
+	// float orthoBound = max(GRID_WIDTH, GRID_HEIGHT);
+	// glm::mat4 proj = glm::ortho(-orthoBound, orthoBound, -orthoBound, orthoBound, 0.1f, 100.0f);
+	glm::mat4 view = glm::lookAt(glm::vec3(0.0f, -max(GRID_WIDTH, GRID_HEIGHT), -max(GRID_WIDTH, GRID_HEIGHT)), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	shader->setMat4f("proj", proj);
+	shader->setMat4f("view", view);
 
 	// This is the variable the transform matricies will be calculated to
 	glm::mat4 model;
@@ -119,8 +149,7 @@ void gDisplay() {
 		for (int y = 0; y < GRID_HEIGHT; y++) {
 			// Draw the grid
 			// model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.4*max(GRID_WIDTH, GRID_HEIGHT), 0.0f));
-			model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			model = glm::translate(model, glm::vec3(-(GRID_WIDTH/2) + 0.5*(!(GRID_WIDTH % 2)), -(GRID_HEIGHT/2) + 0.5*(!(GRID_HEIGHT % 2)), 0.0f));
+			model = glm::translate(glm::mat4(1.0f), glm::vec3(-(GRID_WIDTH/2) + 0.5*(!(GRID_WIDTH % 2)), -(GRID_HEIGHT/2) + 0.5*(!(GRID_HEIGHT % 2)), 0.0f));
 			model = glm::translate(model, glm::vec3(x, y, 0.0f));
 			shader->setMat4f("model", model);
 
@@ -131,7 +160,7 @@ void gDisplay() {
 				darkTileModel->draw();
 
 			// Move the model matrix so the next object is drawn in front of the grid
-			model = glm::translate(model, glm::vec3(0.0f, 0.0f, 1.0f));
+			model = glm::translate(model, glm::vec3(0.0f, 0.0f, -1.0f));
 			shader->setMat4f("model", model);
 
 			// Draw what's at that location
@@ -145,11 +174,23 @@ void gDisplay() {
 	}
 
 	// Draw the wasd compass
-	model = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5*max(GRID_WIDTH, GRID_HEIGHT), -1.5*max(GRID_WIDTH, GRID_HEIGHT), 0.0f));
-	model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	model = glm::scale(model, glm::vec3(15.0f, 15.0f, 15.0f));
-	shader->setMat4f("model", model);
-	compassModel->draw();
+	// model = glm::translate(glm::mat4(1.0f), glm::vec3(2.5f, GRID_HEIGHT/2 + 10.0f, 0.0f));
+	// model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	// model = glm::rotate(model, glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	// model = glm::scale(model, glm::vec3(15.0f, 15.0f, 1.0f));
+	// shader->setMat4f("model", model);
+	// compassModel->draw();
+
+	// Setup projection and view matricies for UI drawing
+	shader->setMat4f("proj", glm::mat4(1.0f));
+	shader->setMat4f("view", glm::mat4(1.0f));
+
+	// Draw the game over text if game is finished
+	if (state == OVER) {
+		shader->setMat4f("model", glm::mat4(1.0f));
+		gameOverModel->draw();
+	}
+
 
 	glutSwapBuffers();
 }
@@ -226,6 +267,9 @@ int main(int argc, char* argv[]) {
 	setvbuf(stderr, NULL, _IONBF, 0);
 	#endif
 
+	// Serialise the random generator
+	srand(time(NULL));
+
 	// Initialise GLUT window
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGBA|GLUT_DEPTH);
@@ -234,6 +278,7 @@ int main(int argc, char* argv[]) {
 	glutCreateWindow(WIN_TITLE);
 	//glClearColor(0.2f, 0.2f, 0.8f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
 	printf("\nInitialised GLUT.\n");
 
 	// Initialise GLEW
@@ -249,30 +294,20 @@ int main(int argc, char* argv[]) {
 	shader->use();
 	printf("Compiled shaders.\n");
 
-	// Setup projection and view matricies for the shader
-	glm::mat4 proj = glm::perspective(glm::radians(90.0f), (float)WIN_WIDTH/WIN_HEIGHT, 0.1f, 100.0f);
-	// float orthoBound = 0.8*max(GRID_WIDTH, GRID_HEIGHT);
-	// glm::mat4 proj = glm::ortho(-orthoBound, orthoBound, -orthoBound, orthoBound, -100.0f, 100.0f);
-	// glm::mat4 view = glm::lookAt(glm::vec3(0.0f, -1.0f, -0.51*max(GRID_WIDTH, GRID_HEIGHT)), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	glm::mat4 view = glm::lookAt(glm::vec3(-15.0f, -15.0f, 15.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
-	shader->setMat4f("proj", proj);
-	shader->setMat4f("view", view);
-
 	// Load models and textures
 	Texture darkGreen("img/green1.jpg");
 	Texture lightGreen("img/green2.jpg");
-	// Texture whiteChecker("img/white_checker.jpg");
 	Texture redChecker("img/red_checker.jpg");
 	Texture blackBox("img/black_box.jpg");
 	Texture compass("img/compass.jpg");
+	Texture gameOver("img/game_over.png");
 	compassModel = new PlaneModel(compass);
+	gameOverModel = new PlaneModel(gameOver);
 	snakeHeadModel = new CubeModel(blackBox);
 	snakeBodyModel = new CubeModel(blackBox);
 	fruitModel = new CubeModel(redChecker);
 	lightTileModel = new CubeModel(lightGreen);
 	darkTileModel = new CubeModel(darkGreen);
-
 
 	// Print OpenGL debug info
 	printf("Finished Graphics initialisation.\n\n");
@@ -284,10 +319,11 @@ int main(int argc, char* argv[]) {
 			grid[x][y] = 0;
 	}
 
-	// Put the head in the middle of the grid
+	// Put the head in the middle of the grid and a fruit for it to eat
 	grid[(int)GRID_WIDTH/2][(int)GRID_HEIGHT/2] = snakeLen;
 	snakeX = (int)GRID_WIDTH/2;
 	snakeY = (int)GRID_HEIGHT/2;
+	placeFruit();
 
 	// Set GLUT functions
 	glutDisplayFunc(gDisplay);
