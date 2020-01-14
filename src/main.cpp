@@ -81,13 +81,13 @@ void running() {
 	// Move the snake in the dir that it is moving
 	switch (snakeDir) {
 		case NORTH:
-			snakeY++;
+			snakeX++;
 			break;
 		case SOUTH:
-			snakeY--;
+			snakeX--;
 			break;
 		case EAST:
-			snakeX--;
+			snakeY--;
 			break;
 		case WEST:
 			snakeX++;
@@ -197,11 +197,13 @@ void gDisplay() {
 
 //** Function handling key events **//
 void gKeyEvent(unsigned char key, int, int) {
+	// TODO: Make this better
 	// Change direction on WASD presses
 	switch (key) {
 		case 'w':
 		case 'W':
-			if (snakeDir != SOUTH) nextSnakeDir = NORTH;
+			if (snakeDir != SOUTH && snakeDir != NORTH) nextSnakeDir = NORTH;
+			else if (snakeDir == NORTH || snakeDir == SOUTH) nextSnakeDir = WEST;
 			break;
 		case 'a':
 		case 'A':
@@ -209,11 +211,13 @@ void gKeyEvent(unsigned char key, int, int) {
 			break;
 		case 's':
 		case 'S':
-			if (snakeDir != NORTH) nextSnakeDir = SOUTH;
+			if (snakeDir != NORTH && snakeDir != SOUTH) nextSnakeDir = SOUTH;
+			else if (snakeDir != WEST) nextSnakeDir = EAST;
 			break;
 		case 'd':
 		case 'D':
-			if (snakeDir != WEST) nextSnakeDir = EAST;
+			if (snakeDir != WEST && snakeDir != EAST) nextSnakeDir = EAST;
+			else if (snakeDir == WEST) nextSnakeDir = NORTH;
 	}
 }
 
@@ -251,6 +255,11 @@ void gLoop(int) {
 	else
 		printf("\033[K\033[KDirection: %s\033[K\nHead Location: (%d, %d)\n\n\033[KGAME OVER!\n\n\033[5A\r", dirString.c_str(), snakeX, snakeY);
 
+	if (state == CLOSING) {
+		printf("\n\n\n");
+		exit(0);
+	}
+
 	glutPostRedisplay();
 	glutTimerFunc(1000/TICK_RATE, gLoop, 0);
 }
@@ -260,6 +269,11 @@ void gLoop(int) {
 *    Init functions    *
 *----------------------*/
 
+void handleInt(int) {
+	state = CLOSING;
+}
+
+//** Entry function **//
 int main(int argc, char* argv[]) {
 	// For fixing stdout buffering on windows
 	#ifdef _WIN32
