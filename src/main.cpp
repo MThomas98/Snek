@@ -57,12 +57,7 @@ GameState state = RUNNING;
 *    Game functions    *
 *----------------------*/
 
-//** Run when game state is not "RUNNING" **//
-void stopped() {
-	// TODO: this
-}
-
-//** place a fruit in the grid **//
+//** Place a fruit in the grid **//
 void placeFruit() {
 	int x, y;
 	do {
@@ -73,6 +68,32 @@ void placeFruit() {
 	grid[x][y] = -1;
 }
 
+//** Set up the game **//
+void initGame() {
+	// Clear the grid
+	for (int x = 0; x < GRID_WIDTH; x++) {
+		for (int y = 0; y < GRID_WIDTH; y++)
+			grid[x][y] = 0;
+	}
+
+	// Put the head in the middle of the grid and face it NORTH
+	grid[(int)GRID_WIDTH/2][(int)GRID_HEIGHT/2] = snakeLen;
+	snakeX = (int)GRID_WIDTH/2;
+	snakeY = (int)GRID_HEIGHT/2;
+	snakeDir = NORTH;
+
+	// Place the first fruit
+	placeFruit();
+
+	// Set the game to run
+	state = RUNNING;
+}
+
+//** Run when game state is not "RUNNING" **//
+void stopped() {
+	// TODO: this
+}
+
 //** Run when game state is "RUNNING" **//
 void running() {
 	// Update direction
@@ -81,13 +102,13 @@ void running() {
 	// Move the snake in the dir that it is moving
 	switch (snakeDir) {
 		case NORTH:
-			snakeX++;
+			snakeY++;
 			break;
 		case SOUTH:
-			snakeX--;
+			snakeY--;
 			break;
 		case EAST:
-			snakeY--;
+			snakeX--;
 			break;
 		case WEST:
 			snakeX++;
@@ -197,13 +218,11 @@ void gDisplay() {
 
 //** Function handling key events **//
 void gKeyEvent(unsigned char key, int, int) {
-	// TODO: Make this better
 	// Change direction on WASD presses
 	switch (key) {
 		case 'w':
 		case 'W':
-			if (snakeDir != SOUTH && snakeDir != NORTH) nextSnakeDir = NORTH;
-			else if (snakeDir == NORTH || snakeDir == SOUTH) nextSnakeDir = WEST;
+			if (snakeDir != SOUTH) nextSnakeDir = NORTH;
 			break;
 		case 'a':
 		case 'A':
@@ -211,13 +230,14 @@ void gKeyEvent(unsigned char key, int, int) {
 			break;
 		case 's':
 		case 'S':
-			if (snakeDir != NORTH && snakeDir != SOUTH) nextSnakeDir = SOUTH;
-			else if (snakeDir != WEST) nextSnakeDir = EAST;
+			if (snakeDir != NORTH) nextSnakeDir = SOUTH;
 			break;
 		case 'd':
 		case 'D':
-			if (snakeDir != WEST && snakeDir != EAST) nextSnakeDir = EAST;
-			else if (snakeDir == WEST) nextSnakeDir = NORTH;
+			if (snakeDir != WEST) nextSnakeDir = EAST;
+			break;
+		case ' ':
+			if (state == OVER) initGame();
 	}
 }
 
@@ -255,11 +275,6 @@ void gLoop(int) {
 	else
 		printf("\033[K\033[KDirection: %s\033[K\nHead Location: (%d, %d)\n\n\033[KGAME OVER!\n\n\033[5A\r", dirString.c_str(), snakeX, snakeY);
 
-	if (state == CLOSING) {
-		printf("\n\n\n");
-		exit(0);
-	}
-
 	glutPostRedisplay();
 	glutTimerFunc(1000/TICK_RATE, gLoop, 0);
 }
@@ -268,10 +283,6 @@ void gLoop(int) {
 /*---------------------*
 *    Init functions    *
 *----------------------*/
-
-void handleInt(int) {
-	state = CLOSING;
-}
 
 //** Entry function **//
 int main(int argc, char* argv[]) {
@@ -309,11 +320,11 @@ int main(int argc, char* argv[]) {
 	printf("Compiled shaders.\n");
 
 	// Load models and textures
-	Texture darkGreen("img/green1.jpg");
-	Texture lightGreen("img/green2.jpg");
-	Texture redChecker("img/red_checker.jpg");
-	Texture blackBox("img/black_box.jpg");
-	Texture compass("img/compass.jpg");
+	Texture darkGreen("img/green1.png");
+	Texture lightGreen("img/green2.png");
+	Texture redChecker("img/red_checker.png");
+	Texture blackBox("img/black_box.png");
+	Texture compass("img/compass.png");
 	Texture gameOver("img/game_over.png");
 	compassModel = new PlaneModel(compass);
 	gameOverModel = new PlaneModel(gameOver);
@@ -333,11 +344,8 @@ int main(int argc, char* argv[]) {
 			grid[x][y] = 0;
 	}
 
-	// Put the head in the middle of the grid and a fruit for it to eat
-	grid[(int)GRID_WIDTH/2][(int)GRID_HEIGHT/2] = snakeLen;
-	snakeX = (int)GRID_WIDTH/2;
-	snakeY = (int)GRID_HEIGHT/2;
-	placeFruit();
+	// Initialise the game
+	initGame();
 
 	// Set GLUT functions
 	glutDisplayFunc(gDisplay);
