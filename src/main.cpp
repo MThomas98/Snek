@@ -22,7 +22,7 @@
 //** Define game attributes **//
 #define GRID_WIDTH 25
 #define GRID_HEIGHT 25
-#define TICK_RATE 5
+#define TICK_RATE 6
 
 using namespace std;
 
@@ -64,7 +64,7 @@ int fruitY;
 
 int grid[GRID_WIDTH][GRID_HEIGHT];
 GameState state = RUNNING;
-bool firstPerson = true;
+bool firstPerson = false;
 
 
 /*---------------------*
