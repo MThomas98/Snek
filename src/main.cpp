@@ -38,6 +38,19 @@ Model* gameOverModel;
 
 //** Game vars **//
 enum SnakeDirection { NORTH, EAST, SOUTH, WEST };
+SnakeDirection operator++(SnakeDirection& dir, int) {
+	if (dir == WEST)
+		return dir = NORTH;
+
+	return dir = static_cast<SnakeDirection>(static_cast<int>(dir) + 1);
+}
+SnakeDirection operator--(SnakeDirection& dir, int) {
+	if (dir == NORTH)
+		return dir = WEST;
+
+	return dir = static_cast<SnakeDirection>(static_cast<int>(dir) - 1);
+}
+
 enum GameState { RUNNING, PAUSED, OVER };
 
 int snakeX = 0;
@@ -51,6 +64,7 @@ int fruitY;
 
 int grid[GRID_WIDTH][GRID_HEIGHT];
 GameState state = RUNNING;
+bool firstPerson = true;
 
 
 /*---------------------*
@@ -72,6 +86,9 @@ void placeFruit() {
 
 //** Set up the game **//
 void initGame() {
+	// Reset snakeLen
+	snakeLen = 3;
+
 	// Clear the grid
 	for (int x = 0; x < GRID_WIDTH; x++) {
 		for (int y = 0; y < GRID_WIDTH; y++)
@@ -163,7 +180,7 @@ void enableLighting() {
 	// Fruit Light
 	shader->setFloat("lights[0].ambStrength", 0.0f);
 	shader->setFloat("lights[0].specStrength", 1.0f);
-	shader->setVec3f("lights[0].lightColor", 1.0f, 0.2f, 0.2f);
+	shader->setVec3f("lights[0].lightColor", 1.0f, 0.0f, 0.0f);
 	shader->setVec3f("lights[0].lightPos", -(GRID_WIDTH/2) + 0.5*(!(GRID_WIDTH % 2)) + fruitX, -(GRID_HEIGHT/2) + 0.5*(!(GRID_HEIGHT % 2)) + fruitY, -1.0f);
 
 	// World Light
@@ -176,27 +193,16 @@ void enableLighting() {
 	shader->setVec3f("viewPosition", 0.0f, -max(GRID_WIDTH, GRID_HEIGHT), -max(GRID_WIDTH, GRID_HEIGHT));
 }
 
-//** The drawing function **//
-void gDisplay() {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	// Set up lighting
-	enableLighting();
-
-	// Setup projection and view matricies for 3d drawing
-	glm::mat4 proj = glm::perspective(glm::radians(60.0f), (float)WIN_WIDTH/WIN_HEIGHT, 0.1f, 100.0f);
-	glm::mat4 view = glm::lookAt(glm::vec3(0.0f, -max(GRID_WIDTH, GRID_HEIGHT), -max(GRID_WIDTH, GRID_HEIGHT)), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	shader->setMat4f("proj", proj);
-	shader->setMat4f("view", view);
-
-	// This is the variable the transform matricies will be calculated to
+//** Function for drawing out the game grid **//
+void drawGrid(glm::vec3 scale, glm::vec3 loc, bool light) {
 	glm::mat4 model;
 
-	// Draw out the grid
 	for (int x = 0; x < GRID_WIDTH; x++) {
 		for (int y = 0; y < GRID_HEIGHT; y++) {
 			// Draw the grid
-			model = glm::translate(glm::mat4(1.0f), glm::vec3(-(GRID_WIDTH/2) + 0.5*(!(GRID_WIDTH % 2)), -(GRID_HEIGHT/2) + 0.5*(!(GRID_HEIGHT % 2)), 0.0f));
+			model = glm::scale(glm::mat4(1.0f), scale);
+			model = glm::translate(model, loc);
+			model = glm::translate(model, glm::vec3(-(GRID_WIDTH/2) + 0.5*(!(GRID_WIDTH % 2)), -(GRID_HEIGHT/2) + 0.5*(!(GRID_HEIGHT % 2)), 0.0f));
 			model = glm::translate(model, glm::vec3(x, y, 0.0f));
 			shader->setMat4f("model", model);
 
@@ -220,21 +226,72 @@ void gDisplay() {
 				model = glm::scale(model, glm::vec3(0.8f, 0.8f, 0.8f));
 				shader->setMat4f("model", model);
 				fruitModel->draw();
-				enableLighting();
+				if (light)
+					enableLighting();
 			}
 		}
 	}
+}
+
+//** The drawing function **//
+void gDisplay() {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Set up lighting
+	enableLighting();
+
+	// Setup projection and view matricies for 3d drawing
+	glm::mat4 view = glm::lookAt(glm::vec3(0.0f, -max(GRID_WIDTH, GRID_HEIGHT), -max(GRID_WIDTH, GRID_HEIGHT)), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 proj = glm::perspective(glm::radians(60.0f), (float)WIN_WIDTH/WIN_HEIGHT, 0.1f, 100.0f);
+	if (firstPerson) {
+		// Calculate the forward vector and where the snake is relative to the grid
+		float camX = -(GRID_WIDTH/2) + 0.5*(!(GRID_WIDTH % 2)) + snakeX;
+		float camY = -(GRID_HEIGHT/2) + 0.5*(!(GRID_HEIGHT % 2)) + snakeY;
+		glm::vec3 forward;
+		switch (snakeDir) {
+			case NORTH:
+				forward = glm::vec3(0.0f, 1.0f, 0.0f);
+				break;
+			case EAST:
+				forward = glm::vec3(-1.0f, 0.0f, 0.0f);
+				break;
+			case SOUTH:
+				forward = glm::vec3(0.0f, -1.0f, 0.0f);
+				break;
+			case WEST:
+				forward = glm::vec3(1.0f, 0.0f, 0.0f);
+				break;
+		}
+
+		// Set the view
+		view = glm::lookAt(glm::vec3(camX, camY, -4.0f) - 3.0f*forward, glm::vec3(camX, camY, 0.0f) + forward*5.0f, glm::vec3(0.0f, 0.0f, -1.0f));
+	}
+	shader->setMat4f("proj", proj);
+	shader->setMat4f("view", view);
+
+	// Draw the grid
+	drawGrid(glm::vec3(1.0f), glm::vec3(0.0f), true);
+
+	// Draw out minimap
+	if (firstPerson) {
+		glClear(GL_DEPTH_BUFFER_BIT);
+		shader->setMat4f("view", glm::lookAt(glm::vec3(0.0f, -max(GRID_WIDTH, GRID_HEIGHT), -max(GRID_WIDTH, GRID_HEIGHT)), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)));
+		shader->setMat4f("proj", glm::perspective(glm::radians(60.0f), (float)WIN_WIDTH/WIN_HEIGHT, 0.1f, 100.0f));
+		glClear(GL_DEPTH_BUFFER_BIT);
+		drawGrid(glm::vec3(0.8f), glm::vec3(0.9*max(GRID_WIDTH, GRID_HEIGHT), 1.9*max(GRID_WIDTH, GRID_HEIGHT), 0.0f), true);
+	}
 
 	// Setup projection and view matricies for UI drawing
-	shader->setMat4f("proj", glm::mat4(1.0f));
+	shader->setMat4f("proj", glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, -100.0f, 100.0f));
 	shader->setMat4f("view", glm::mat4(1.0f));
 	disableLighting();
 
 	// Draw the game over text if game is finished
 	if (state == OVER) {
-		model = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		model = glm::scale(model, glm::vec3(2.0f, 2.0f, 1.0f));
+		model = glm::translate(model, glm::vec3(0.0f, 0.0f, -2.0f));
 		shader->setMat4f("model", model);
 		gameOverModel->draw();
 	}
@@ -248,23 +305,29 @@ void gKeyEvent(unsigned char key, int, int) {
 	switch (key) {
 		case 'w':
 		case 'W':
-			if (snakeDir != SOUTH) nextSnakeDir = NORTH;
+			if (snakeDir != SOUTH && !firstPerson) nextSnakeDir = NORTH;
 			break;
 		case 'a':
 		case 'A':
-			if (snakeDir != EAST) nextSnakeDir = WEST;
+			if (snakeDir != EAST && !firstPerson) nextSnakeDir = WEST;
+			if (firstPerson) nextSnakeDir--;
 			break;
 		case 's':
 		case 'S':
-			if (snakeDir != NORTH) nextSnakeDir = SOUTH;
+			if (snakeDir != NORTH && !firstPerson) nextSnakeDir = SOUTH;
 			break;
 		case 'd':
 		case 'D':
-			if (snakeDir != WEST) nextSnakeDir = EAST;
+			if (snakeDir != WEST && !firstPerson) nextSnakeDir = EAST;
+			if (firstPerson) nextSnakeDir++;
+			break;
+		case 'p':
+		case 'P':
+			firstPerson = !firstPerson;
 			break;
 		case ' ':
 			if (state == OVER) initGame();
-			printf("\033[4B\r\033[K\033[4A");
+			printf("\033[5B\r\033[K\033[5A");
 			snakeLen = 3;
 	}
 }
@@ -299,9 +362,9 @@ void gLoop(int) {
 
 	// Print out the information
 	if (state != OVER)
-		printf("\033[KDirection: %s\n\033[KHead Location: (%d, %d)\n\n\033[KSCORE: %d\n\n\033[5A\r", dirString.c_str(), snakeX, snakeY, snakeLen);
+		printf("\033[KDirection: %s\n\033[KHead Location: (%d, %d)\n\033[KFirst Person: %d\n\n\033[KSCORE: %d\n\n\033[6A\r", dirString.c_str(), snakeX, snakeY, firstPerson, snakeLen);
 	else
-		printf("\033[KDirection: %s\n\033[KHead Location: (%d, %d)\n\n\033[KSCORE: %d\n\033[KGAME OVER!\n\033[5A\r", dirString.c_str(), snakeX, snakeY, snakeLen);
+		printf("\033[KDirection: %s\n\033[KHead Location: (%d, %d)\n\033[KFirst Person: %d\n\n\033[KSCORE: %d\n\033[KGAME OVER!\n\033[6A\r", dirString.c_str(), snakeX, snakeY, firstPerson, snakeLen);
 
 	glutPostRedisplay();
 	glutTimerFunc(1000/TICK_RATE, gLoop, 0);
@@ -314,7 +377,7 @@ void gLoop(int) {
 
 //** Exit function to clean up console printing **//
 void exiting() {
-	printf("\n\n\n\n\n");
+	printf("\n\n\n\n\n\n");
 }
 
 //** Entry function **//
