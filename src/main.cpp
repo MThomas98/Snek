@@ -15,7 +15,7 @@
 #include "Model.h"
 
 //** Define window attributes **//
-#define WIN_TITLE "CS310 Project"
+#define WIN_TITLE "3D Snake Game"
 #define WIN_WIDTH 1000
 #define WIN_HEIGHT 1000
 
